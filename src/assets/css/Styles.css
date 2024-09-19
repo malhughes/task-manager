@@ -1,0 +1,10 @@
+/* Bootstrap overrides */
+.form-control:focus {
+  border-color: #111111 !important;
+  box-shadow: 0 0 0 0.15rem #fefce5b7;
+}
+
+.form-check-input:focus {
+  border-color: #111111 !important;
+  box-shadow: 0 0 0 0.15rem #fefce5b7;
+}
