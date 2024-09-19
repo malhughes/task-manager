@@ -1,4 +1,4 @@
-.login-info {
+.signup-info {
   height: 100%;
   width: 100%;
   display: flex;
@@ -6,7 +6,7 @@
   align-items: center;
 }
 
-.login-card {
+.signup-card {
   width: 640px;
   height: 580px;
   padding: 30px;
@@ -18,16 +18,11 @@
   border: 1px solid #f9f9f9;
   border-radius: 10px;
 }
-
-hr {
-  background-color: #f9f9f9;
-}
-
-.login-card > h2 {
+.signup-card > h2 {
   margin-bottom: 50px;
 }
 
-.login-form {
+.signup-form {
   width: 60%;
   display: flex;
   flex-direction: column;
@@ -36,35 +31,10 @@ hr {
   font-weight: 200;
 }
 
-.login-form > * {
+.signup-form > * {
   width: 100%;
 }
 
-.google-login {
-  margin-bottom: 30px;
-}
-
-.google-login > button {
-  width: 100%;
-}
-
-.remember-check {
-  margin: 0 auto 5px 0;
-}
-
-.remember-check > button {
-  margin-right: 5px;
-}
-
-.sign-up {
+.signup-form button {
   margin: 40px 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 60%;
-}
-
-.sign-up > button {
-  width: 100%;
 }
