@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 
-import auth from "./routes/auth.js";
+import authRoute from "./routes/auth.route.js";
 import connectMongoDB from "./db/connectMongoDB.js";
 
 dotenv.config();
@@ -17,7 +17,7 @@ app.use(express.urlencoded({ extended: true })); // parses url-encoded data
 
 app.use(cookieParser()); //parses req to get cookies
 
-app.use("/api/auth", auth);
+app.use("/api/auth", authRoute);
 
 //when server is up and running connect to db
 app.listen(PORT, () => {
