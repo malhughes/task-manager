@@ -4,7 +4,7 @@ import { generateTokenAndSetCookie } from "../lib/utils/generateToken.js";
 
 export const signup = async (req, res) => {
   try {
-    const { fullName, password, email } = req.body;
+    const { username, fullName, password, email } = req.body;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -13,8 +13,15 @@ export const signup = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ username });
     if (existingUser) {
+      return res.status(400).json({
+        message: "Account with this username already exists",
+      });
+    }
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
       return res.status(400).json({
         message: "Account with this email already exists",
       });
@@ -31,6 +38,7 @@ export const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new User({
+      username: username,
       fullName: fullName,
       email: email,
       password: hashedPassword,
@@ -42,6 +50,7 @@ export const signup = async (req, res) => {
 
       res.status(201).json({
         _id: newUser._id,
+        username: newUser.username,
         fullName: newUser.fullName,
         email: newUser.email,
         profileImg: newUser.profileImg,
@@ -61,9 +70,12 @@ export const signup = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    //login with username or email
+    const query = username ? { username } : { email };
+
+    const user = await User.findOne(query);
     const isPasswordCorrect = await bcrypt.compare(
       password,
       user.password || ""
@@ -71,7 +83,7 @@ export const login = async (req, res) => {
 
     if (!user || !isPasswordCorrect) {
       return res.status(400).json({
-        message: "Invalid email or password",
+        message: "Invalid username or password",
       });
     }
 
@@ -79,6 +91,7 @@ export const login = async (req, res) => {
 
     res.status(200).json({
       _id: user._id,
+      username: user.username,
       fullName: user.fullName,
       email: user.email,
       profileImg: user.profileImg,
