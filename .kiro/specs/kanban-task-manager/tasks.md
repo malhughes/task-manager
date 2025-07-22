@@ -38,20 +38,31 @@
   - Test input validation and error handling
   - _Requirements: 2.1, 2.3, 5.5_
 
-- [ ] 2. Set up frontend project structure and dependencies
-- [ ] 2.1 Install required frontend dependencies
+- [x] 2. Set up frontend project structure and dependencies
+
+
+
+
+
+- [x] 2.1 Install required frontend dependencies
+
+
   - Add react-dnd and react-dnd-html5-backend for drag-and-drop functionality
   - Install additional Material-UI components if needed
   - Update package.json with new dependencies
   - _Requirements: 4.1, 4.2, 6.1_
 
-- [ ] 2.2 Create basic component structure and routing
+- [x] 2.2 Create basic component structure and routing
+
+
   - Set up React Router for login and dashboard routes
   - Create placeholder components for KanbanBoard, TaskCard, Swimlane, and TaskModal
   - Implement basic routing with authentication protection
   - _Requirements: 1.1, 1.5, 6.1_
 
-- [ ] 2.3 Create API service layer for backend communication
+- [x] 2.3 Create API service layer for backend communication
+
+
   - Implement API functions for task CRUD operations
   - Add authentication headers and error handling
   - Create utility functions for HTTP requests
