@@ -6,7 +6,7 @@ export const authService = {
   async login(credentials) {
     try {
       const { username, password } = credentials;
-      
+
       if (!username || !password) {
         throw new ApiError('Username and password are required', 400);
       }
@@ -15,7 +15,7 @@ export const authService = {
         username: username.trim(),
         password,
       });
-      
+
       return response;
     } catch (error) {
       console.error('Login failed:', error);
@@ -45,10 +45,10 @@ export const authService = {
   // Register new user
   async register(userData) {
     try {
-      const { username, email, password, confirmPassword } = userData;
-      
-      if (!username || !email || !password) {
-        throw new ApiError('Username, email, and password are required', 400);
+      const { fullName, username, email, password, confirmPassword } = userData;
+
+      if (!fullName || !username || !email || !password) {
+        throw new ApiError('Full name, username, email, and password are required', 400);
       }
 
       if (password !== confirmPassword) {
@@ -56,11 +56,12 @@ export const authService = {
       }
 
       const response = await api.post('/auth/signup', {
+        fullName: fullName.trim(),
         username: username.trim(),
         email: email.trim(),
         password,
       });
-      
+
       return response;
     } catch (error) {
       console.error('Registration failed:', error);
@@ -83,7 +84,7 @@ export const authService = {
       if (error.status === 401) {
         return null;
       }
-      
+
       console.error('Auth check failed:', error);
       throw new ApiError(
         error.message || 'Authentication check failed',
