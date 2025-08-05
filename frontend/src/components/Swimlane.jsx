@@ -1,5 +1,7 @@
 import { Box, Typography, Paper, Chip, useTheme, useMediaQuery } from '@mui/material';
 import { Add as AddIcon, Assignment as AssignmentIcon } from '@mui/icons-material';
+import { useDrop } from 'react-dnd';
+import { ItemTypes } from '../constants/dragDropTypes';
 import TaskCard from './TaskCard';
 
 export default function Swimlane({ 
@@ -13,6 +15,29 @@ export default function Swimlane({
 }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Set up drop functionality
+  const [{ isOver, canDrop }, drop] = useDrop({
+    accept: ItemTypes.TASK_CARD,
+    drop: (item, monitor) => {
+      // Only move if the task is being dropped in a different swimlane
+      if (item.task.status !== status) {
+        onTaskMove(item.id, status);
+        // Return drop result to indicate successful drop
+        return { moved: true, targetStatus: status };
+      }
+      // Return result indicating no move was needed
+      return { moved: false, reason: 'same-status' };
+    },
+    canDrop: (item) => {
+      // Allow drop only if the task is from a different status
+      return item.task.status !== status;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      canDrop: monitor.canDrop(),
+    }),
+  });
 
   // Handle task editing
   const handleTaskEdit = (task) => {
@@ -55,24 +80,55 @@ export default function Swimlane({
     }
   };
 
+  // Get drop zone styling
+  const getDropZoneStyle = () => {
+    if (isOver && canDrop) {
+      return {
+        backgroundColor: theme.palette.action.hover,
+        borderColor: getHeaderColor(),
+        borderWidth: '3px',
+        borderStyle: 'solid',
+        transform: 'scale(1.02)',
+      };
+    }
+    if (isOver && !canDrop) {
+      // Invalid drop zone - show red border
+      return {
+        borderColor: theme.palette.error.main,
+        borderWidth: '3px',
+        borderStyle: 'solid',
+        backgroundColor: theme.palette.error.light + '20', // 20% opacity
+      };
+    }
+    if (canDrop) {
+      return {
+        borderColor: getHeaderColor(),
+        borderStyle: 'dashed',
+      };
+    }
+    return {};
+  };
+
   return (
     <Paper
-      elevation={2}
+      ref={drop}
+      elevation={isOver ? 8 : 2}
       sx={{
         flex: 1,
         minWidth: isMobile ? '280px' : '320px',
         maxWidth: isMobile ? '100%' : '400px',
         padding: 2,
-        backgroundColor: '#fafafa',
+        backgroundColor: isOver && canDrop ? theme.palette.action.hover : '#fafafa',
         minHeight: '500px',
         display: 'flex',
         flexDirection: 'column',
         border: `2px solid ${getStatusColor()}`,
         borderRadius: 2,
         transition: 'all 0.2s ease-in-out',
+        ...getDropZoneStyle(),
         '&:hover': {
-          elevation: 4,
-          transform: 'translateY(-2px)',
+          elevation: isOver ? 8 : 4,
+          transform: isOver ? 'scale(1.02)' : 'translateY(-2px)',
         }
       }}
     >
@@ -122,6 +178,11 @@ export default function Swimlane({
           gap: 1.5,
           overflowY: 'auto',
           maxHeight: 'calc(100vh - 200px)',
+          minHeight: '200px',
+          padding: isOver && canDrop ? 1 : 0,
+          borderRadius: isOver && canDrop ? 1 : 0,
+          backgroundColor: isOver && canDrop ? theme.palette.action.selected : 'transparent',
+          transition: 'all 0.2s ease-in-out',
           '&::-webkit-scrollbar': {
             width: '6px',
           },

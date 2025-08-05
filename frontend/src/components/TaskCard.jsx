@@ -15,9 +15,35 @@ import {
   Schedule as ScheduleIcon,
   Flag as FlagIcon
 } from '@mui/icons-material';
+import { useDrag } from 'react-dnd';
+import { ItemTypes } from '../constants/dragDropTypes';
 
 export default function TaskCard({ task, onEdit, onDelete }) {
   const theme = useTheme();
+
+  // Set up drag functionality
+  const [{ isDragging }, drag] = useDrag({
+    type: ItemTypes.TASK_CARD,
+    item: { 
+      id: task._id || task.id, 
+      task: task,
+      originalStatus: task.status 
+    },
+    end: (item, monitor) => {
+      // Handle drag end - this fires regardless of whether drop was successful
+      const dropResult = monitor.getDropResult();
+      if (!dropResult) {
+        // Drag was cancelled (dropped outside valid drop zone)
+        console.log('Drag cancelled - task returned to original position');
+      } else if (dropResult.moved === false) {
+        // Task was dropped in same swimlane
+        console.log('Task dropped in same swimlane - no move needed');
+      }
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
 
   const handleEdit = (e) => {
     e.stopPropagation();
@@ -78,18 +104,21 @@ export default function TaskCard({ task, onEdit, onDelete }) {
 
   return (
     <Card
+      ref={drag}
       sx={{
-        cursor: 'grab',
+        cursor: isDragging ? 'grabbing' : 'grab',
         transition: 'all 0.2s ease-in-out',
         border: `2px solid transparent`,
         borderLeftColor: getStatusColor(task.status),
         borderLeftWidth: '4px',
+        opacity: isDragging ? 0.5 : 1,
+        transform: isDragging ? 'rotate(5deg)' : 'none',
         '&:hover': {
-          boxShadow: theme.shadows[8],
-          transform: 'translateY(-2px)',
+          boxShadow: isDragging ? theme.shadows[4] : theme.shadows[8],
+          transform: isDragging ? 'rotate(5deg)' : 'translateY(-2px)',
           borderColor: alpha(getStatusColor(task.status), 0.3),
           '& .task-actions': {
-            opacity: 1,
+            opacity: isDragging ? 0 : 1,
           }
         },
         '&:active': {

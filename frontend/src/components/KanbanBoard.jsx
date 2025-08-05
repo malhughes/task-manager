@@ -76,6 +76,17 @@ export default function KanbanBoard() {
   // Handle task movement between swimlanes
   const handleTaskMove = async (taskId, newStatus) => {
     const originalTasks = [...tasks];
+    const taskToMove = tasks.find(task => task._id === taskId);
+    
+    if (!taskToMove) {
+      showSnackbar('Task not found', 'error');
+      return;
+    }
+
+    // Don't move if already in the target status
+    if (taskToMove.status === newStatus) {
+      return;
+    }
     
     try {
       setOperationLoading(true);
@@ -89,12 +100,27 @@ export default function KanbanBoard() {
 
       // Update task status via API
       await taskService.updateTaskStatus(taskId, newStatus);
-      showSnackbar('Task moved successfully', 'success');
+      
+      // Get status display names for user feedback
+      const statusNames = {
+        'todo': 'To-Do',
+        'in-progress': 'In Progress', 
+        'completed': 'Completed'
+      };
+      
+      showSnackbar(
+        `"${taskToMove.title}" moved to ${statusNames[newStatus]}`, 
+        'success'
+      );
     } catch (err) {
       // Revert optimistic update on error
       setTasks(originalTasks);
-      const errorMessage = err.message || 'Failed to update task status';
-      showSnackbar(errorMessage, 'error');
+      
+      const errorMessage = err.message || 'Failed to move task';
+      showSnackbar(
+        `Failed to move "${taskToMove.title}": ${errorMessage}`, 
+        'error'
+      );
       console.error('Error moving task:', err);
     } finally {
       setOperationLoading(false);
@@ -321,9 +347,46 @@ export default function KanbanBoard() {
           height: 'calc(100vh - 140px)',
           overflow: 'auto',
           opacity: operationLoading ? 0.7 : 1,
-          transition: 'opacity 0.2s ease-in-out'
+          transition: 'opacity 0.2s ease-in-out',
+          position: 'relative'
         }}
       >
+        {/* Drag operation overlay */}
+        {operationLoading && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              zIndex: 1,
+              pointerEvents: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backdropFilter: 'blur(1px)'
+            }}
+          >
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                padding: 2,
+                borderRadius: 2,
+                boxShadow: theme.shadows[4]
+              }}
+            >
+              <CircularProgress size={20} />
+              <Typography variant="body2" color="text.secondary">
+                Moving task...
+              </Typography>
+            </Box>
+          </Box>
+        )}
         <Swimlane
           title="To-Do"
           tasks={todoTasks}

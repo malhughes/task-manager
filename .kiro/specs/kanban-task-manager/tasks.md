@@ -173,32 +173,47 @@
   - Test edit and delete functionality
   - _Requirements: 2.1, 2.2, 2.3, 2.6_
 
-- [ ] 6. Implement drag-and-drop functionality
-- [ ] 6.1 Set up React DnD provider and drag-drop context
+- [x] 6. Implement drag-and-drop functionality
+
+
+
+
+
+- [x] 6.1 Set up React DnD provider and drag-drop context
+
+
   - Configure React DnD HTML5 backend
   - Wrap application with DragDropProvider
   - Set up drag and drop types and constants
   - _Requirements: 4.1, 4.2_
 
-- [ ] 6.2 Make TaskCard components draggable
+- [x] 6.2 Make TaskCard components draggable
+
+
   - Implement drag source functionality for task cards
   - Add visual feedback during drag operations
   - Handle drag start and end events
   - _Requirements: 4.1, 4.2_
 
-- [ ] 6.3 Make Swimlane components drop targets
+- [x] 6.3 Make Swimlane components drop targets
+
+
   - Implement drop target functionality for swimlanes
   - Add visual feedback for valid drop zones
   - Handle drop events and task status updates
   - _Requirements: 4.3, 4.4_
 
-- [ ] 6.4 Integrate drag-drop with task status API
+- [x] 6.4 Integrate drag-drop with task status API
+
+
   - Connect drop events to task status update API
   - Implement optimistic updates with rollback on failure
   - Add proper error handling for failed status updates
   - _Requirements: 4.5, 5.2_
 
-- [ ] 6.5 Add drag-drop cancellation and error handling
+- [x] 6.5 Add drag-drop cancellation and error handling
+
+
   - Implement drag cancellation functionality
   - Handle API errors during task moves with proper user feedback
   - Ensure task returns to original position on failed moves
