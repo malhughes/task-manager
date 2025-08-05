@@ -8,7 +8,7 @@ export default function Swimlane({
   status, 
   onTaskMove, 
   onTaskCreate, 
-  onTaskUpdate, 
+  onTaskEdit, 
   onTaskDelete 
 }) {
   const theme = useTheme();
@@ -16,8 +16,8 @@ export default function Swimlane({
 
   // Handle task editing
   const handleTaskEdit = (task) => {
-    if (onTaskUpdate) {
-      onTaskUpdate(task._id, task);
+    if (onTaskEdit) {
+      onTaskEdit(task);
     }
   };
 
@@ -188,10 +188,7 @@ export default function Swimlane({
       {status === 'todo' && onTaskCreate && (
         <Box sx={{ mt: 2, pt: 1, borderTop: `1px solid ${theme.palette.grey[300]}` }}>
           <Box
-            onClick={() => {
-              // This will be handled by a modal in the parent component
-              console.log('Add task clicked for', status);
-            }}
+            onClick={onTaskCreate}
             sx={{
               display: 'flex',
               alignItems: 'center',

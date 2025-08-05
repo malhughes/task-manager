@@ -6,38 +6,81 @@ import {
   DialogActions,
   TextField,
   Button,
-  Box
+  Box,
+  Typography,
+  IconButton,
+  Alert,
+  CircularProgress
 } from '@mui/material';
+import {
+  Close as CloseIcon,
+  Add as AddIcon,
+  Edit as EditIcon
+} from '@mui/icons-material';
 
-export default function TaskModal({ open, task, onClose, onSubmit }) {
+export default function TaskModal({ 
+  open, 
+  onClose, 
+  onSubmit, 
+  task = null, 
+  loading = false 
+}) {
   const [formData, setFormData] = useState({
     title: '',
     description: ''
   });
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
-  // Populate form when editing existing task
+  const isEditMode = Boolean(task);
+
+  // Initialize form data when modal opens or task changes
   useEffect(() => {
-    if (task) {
-      setFormData({
-        title: task.title || '',
-        description: task.description || ''
-      });
-    } else {
-      setFormData({
-        title: '',
-        description: ''
-      });
+    if (open) {
+      if (isEditMode && task) {
+        setFormData({
+          title: task.title || '',
+          description: task.description || ''
+        });
+      } else {
+        setFormData({
+          title: '',
+          description: ''
+        });
+      }
+      setErrors({});
+      setTouched({});
     }
-    setErrors({});
-  }, [task, open]);
+  }, [open, task, isEditMode]);
 
-  const handleChange = (field) => (event) => {
+  // Validation function
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Title validation
+    if (!formData.title.trim()) {
+      newErrors.title = 'Task title is required';
+    } else if (formData.title.trim().length > 200) {
+      newErrors.title = 'Title must be less than 200 characters';
+    }
+
+    // Description validation
+    if (formData.description.length > 1000) {
+      newErrors.description = 'Description must be less than 1000 characters';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle input changes
+  const handleInputChange = (field) => (event) => {
+    const value = event.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: event.target.value
+      [field]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
@@ -47,75 +90,184 @@ export default function TaskModal({ open, task, onClose, onSubmit }) {
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
-    } else if (formData.title.length > 200) {
-      newErrors.title = 'Title must be less than 200 characters';
+  // Handle input blur for validation
+  const handleInputBlur = (field) => () => {
+    setTouched(prev => ({
+      ...prev,
+      [field]: true
+    }));
+
+    // Validate specific field on blur
+    if (field === 'title' && !formData.title.trim()) {
+      setErrors(prev => ({
+        ...prev,
+        title: 'Task title is required'
+      }));
     }
-    
-    if (formData.description.length > 1000) {
-      newErrors.description = 'Description must be less than 1000 characters';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  // Handle form submission
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    
+    setTouched({
+      title: true,
+      description: true
+    });
+
     if (validateForm()) {
-      onSubmit({
-        ...formData,
-        id: task?.id // Include ID if editing existing task
-      });
+      const submitData = {
+        title: formData.title.trim(),
+        description: formData.description.trim()
+      };
+      
+      onSubmit(submitData);
+    }
+  };
+
+  // Handle modal close
+  const handleClose = () => {
+    if (!loading) {
       onClose();
     }
   };
 
-  const handleClose = () => {
-    setFormData({ title: '', description: '' });
-    setErrors({});
-    onClose();
+  // Handle escape key
+  const handleKeyDown = (event) => {
+    if (event.key === 'Escape' && !loading) {
+      handleClose();
+    }
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {task ? 'Edit Task' : 'Create New Task'}
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      onKeyDown={handleKeyDown}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          minHeight: '300px'
+        }
+      }}
+    >
+      {/* Dialog Header */}
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          pb: 1
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {isEditMode ? <EditIcon color="primary" /> : <AddIcon color="primary" />}
+          <Typography variant="h6" component="h2">
+            {isEditMode ? 'Edit Task' : 'Create New Task'}
+          </Typography>
+        </Box>
+        
+        <IconButton
+          onClick={handleClose}
+          disabled={loading}
+          size="small"
+          sx={{ color: 'text.secondary' }}
+        >
+          <CloseIcon />
+        </IconButton>
       </DialogTitle>
-      <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+
+      {/* Dialog Content */}
+      <DialogContent sx={{ pt: 2 }}>
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          {/* Title Field */}
           <TextField
-            label="Title"
-            value={formData.title}
-            onChange={handleChange('title')}
-            error={!!errors.title}
-            helperText={errors.title}
-            fullWidth
-            required
             autoFocus
-          />
-          <TextField
-            label="Description"
-            value={formData.description}
-            onChange={handleChange('description')}
-            error={!!errors.description}
-            helperText={errors.description}
             fullWidth
+            label="Task Title"
+            placeholder="Enter a descriptive title for your task"
+            value={formData.title}
+            onChange={handleInputChange('title')}
+            onBlur={handleInputBlur('title')}
+            error={Boolean(errors.title && touched.title)}
+            helperText={
+              errors.title && touched.title 
+                ? errors.title 
+                : `${formData.title.length}/200 characters`
+            }
+            disabled={loading}
+            required
+            sx={{ mb: 3 }}
+            inputProps={{
+              maxLength: 200
+            }}
+          />
+
+          {/* Description Field */}
+          <TextField
+            fullWidth
+            label="Description"
+            placeholder="Add more details about this task (optional)"
+            value={formData.description}
+            onChange={handleInputChange('description')}
+            onBlur={handleInputBlur('description')}
+            error={Boolean(errors.description && touched.description)}
+            helperText={
+              errors.description && touched.description 
+                ? errors.description 
+                : `${formData.description.length}/1000 characters`
+            }
+            disabled={loading}
             multiline
             rows={4}
-            placeholder="Optional description..."
+            sx={{ mb: 2 }}
+            inputProps={{
+              maxLength: 1000
+            }}
           />
+
+          {/* Form validation summary */}
+          {Object.keys(errors).length > 0 && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                Please fix the errors above before submitting.
+              </Typography>
+            </Alert>
+          )}
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>
+
+      {/* Dialog Actions */}
+      <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+        <Button
+          onClick={handleClose}
+          disabled={loading}
+          color="inherit"
+        >
           Cancel
         </Button>
-        <Button onClick={handleSubmit} variant="contained">
-          {task ? 'Update' : 'Create'}
+        
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={loading || !formData.title.trim()}
+          startIcon={
+            loading ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : isEditMode ? (
+              <EditIcon />
+            ) : (
+              <AddIcon />
+            )
+          }
+          sx={{ minWidth: '120px' }}
+        >
+          {loading 
+            ? (isEditMode ? 'Updating...' : 'Creating...') 
+            : (isEditMode ? 'Update Task' : 'Create Task')
+          }
         </Button>
       </DialogActions>
     </Dialog>

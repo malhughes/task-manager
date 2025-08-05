@@ -16,6 +16,8 @@ import {
 } from '@mui/icons-material';
 import { taskService } from '../services/taskService';
 import Swimlane from './Swimlane';
+import TaskModal from './TaskModal';
+import DeleteConfirmDialog from './DeleteConfirmDialog';
 
 export default function KanbanBoard() {
   const theme = useTheme();
@@ -25,6 +27,8 @@ export default function KanbanBoard() {
   const [operationLoading, setOperationLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [retryCount, setRetryCount] = useState(0);
+  const [taskModal, setTaskModal] = useState({ open: false, task: null });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, task: null });
 
   // Show snackbar notification
   const showSnackbar = (message, severity = 'info') => {
@@ -97,6 +101,34 @@ export default function KanbanBoard() {
     }
   };
 
+  // Handle opening task creation modal
+  const handleOpenCreateModal = () => {
+    setTaskModal({ open: true, task: null });
+  };
+
+  // Handle opening task edit modal
+  const handleOpenEditModal = (task) => {
+    setTaskModal({ open: true, task });
+  };
+
+  // Handle closing task modal
+  const handleCloseModal = () => {
+    setTaskModal({ open: false, task: null });
+  };
+
+  // Handle opening delete confirmation dialog
+  const handleOpenDeleteDialog = (taskId) => {
+    const taskToDelete = tasks.find(task => task._id === taskId);
+    if (taskToDelete) {
+      setDeleteDialog({ open: true, task: taskToDelete });
+    }
+  };
+
+  // Handle closing delete confirmation dialog
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialog({ open: false, task: null });
+  };
+
   // Handle task creation
   const handleTaskCreate = async (taskData) => {
     try {
@@ -104,6 +136,7 @@ export default function KanbanBoard() {
       const newTask = await taskService.createTask(taskData);
       setTasks(prevTasks => [...prevTasks, newTask]);
       showSnackbar('Task created successfully', 'success');
+      handleCloseModal();
     } catch (err) {
       const errorMessage = err.message || 'Failed to create task';
       showSnackbar(errorMessage, 'error');
@@ -114,7 +147,8 @@ export default function KanbanBoard() {
   };
 
   // Handle task update
-  const handleTaskUpdate = async (taskId, taskData) => {
+  const handleTaskUpdate = async (taskData) => {
+    const taskId = taskModal.task._id;
     try {
       setOperationLoading(true);
       const updatedTask = await taskService.updateTask(taskId, taskData);
@@ -124,6 +158,7 @@ export default function KanbanBoard() {
         )
       );
       showSnackbar('Task updated successfully', 'success');
+      handleCloseModal();
     } catch (err) {
       const errorMessage = err.message || 'Failed to update task';
       showSnackbar(errorMessage, 'error');
@@ -135,15 +170,12 @@ export default function KanbanBoard() {
 
   // Handle task deletion
   const handleTaskDelete = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) {
-      return;
-    }
-
     try {
       setOperationLoading(true);
       await taskService.deleteTask(taskId);
       setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
       showSnackbar('Task deleted successfully', 'success');
+      handleCloseDeleteDialog();
     } catch (err) {
       const errorMessage = err.message || 'Failed to delete task';
       showSnackbar(errorMessage, 'error');
@@ -297,25 +329,25 @@ export default function KanbanBoard() {
           tasks={todoTasks}
           status="todo"
           onTaskMove={handleTaskMove}
-          onTaskCreate={handleTaskCreate}
-          onTaskUpdate={handleTaskUpdate}
-          onTaskDelete={handleTaskDelete}
+          onTaskCreate={handleOpenCreateModal}
+          onTaskEdit={handleOpenEditModal}
+          onTaskDelete={handleOpenDeleteDialog}
         />
         <Swimlane
           title="In Progress"
           tasks={inProgressTasks}
           status="in-progress"
           onTaskMove={handleTaskMove}
-          onTaskUpdate={handleTaskUpdate}
-          onTaskDelete={handleTaskDelete}
+          onTaskEdit={handleOpenEditModal}
+          onTaskDelete={handleOpenDeleteDialog}
         />
         <Swimlane
           title="Completed"
           tasks={completedTasks}
           status="completed"
           onTaskMove={handleTaskMove}
-          onTaskUpdate={handleTaskUpdate}
-          onTaskDelete={handleTaskDelete}
+          onTaskEdit={handleOpenEditModal}
+          onTaskDelete={handleOpenDeleteDialog}
         />
       </Box>
 
@@ -335,6 +367,24 @@ export default function KanbanBoard() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Task Modal for creation and editing */}
+      <TaskModal
+        open={taskModal.open}
+        onClose={handleCloseModal}
+        onSubmit={taskModal.task ? handleTaskUpdate : handleTaskCreate}
+        task={taskModal.task}
+        loading={operationLoading}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        open={deleteDialog.open}
+        onClose={handleCloseDeleteDialog}
+        onConfirm={handleTaskDelete}
+        task={deleteDialog.task}
+        loading={operationLoading}
+      />
     </Box>
   );
 }
