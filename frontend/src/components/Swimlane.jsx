@@ -1,10 +1,11 @@
+import { memo, useMemo, useCallback } from 'react';
 import { Box, Typography, Paper, Chip, useTheme, useMediaQuery, alpha } from '@mui/material';
 import { Add as AddIcon, Assignment as AssignmentIcon } from '@mui/icons-material';
 import { useDrop } from 'react-dnd';
 import { ItemTypes } from '../constants/dragDropTypes';
 import TaskCard from './TaskCard';
 
-export default function Swimlane({ 
+const Swimlane = memo(function Swimlane({ 
   title, 
   tasks, 
   status, 
@@ -39,22 +40,21 @@ export default function Swimlane({
     }),
   });
 
-  // Handle task editing
-  const handleTaskEdit = (task) => {
+  // Memoized callbacks to prevent unnecessary re-renders
+  const handleTaskEdit = useCallback((task) => {
     if (onTaskEdit) {
       onTaskEdit(task);
     }
-  };
+  }, [onTaskEdit]);
 
-  // Handle task deletion
-  const handleTaskDelete = (taskId) => {
+  const handleTaskDelete = useCallback((taskId) => {
     if (onTaskDelete) {
       onTaskDelete(taskId);
     }
-  };
+  }, [onTaskDelete]);
 
-  // Get status-specific styling
-  const getStatusColor = () => {
+  // Memoized status colors to avoid recalculation
+  const statusColor = useMemo(() => {
     switch (status) {
       case 'todo':
         return theme.palette.info.light;
@@ -65,9 +65,9 @@ export default function Swimlane({
       default:
         return theme.palette.grey[300];
     }
-  };
+  }, [status, theme]);
 
-  const getHeaderColor = () => {
+  const headerColor = useMemo(() => {
     switch (status) {
       case 'todo':
         return theme.palette.info.main;
@@ -78,18 +78,20 @@ export default function Swimlane({
       default:
         return theme.palette.grey[600];
     }
-  };
+  }, [status, theme]);
 
-  // Enhanced drop zone styling with smooth animations
-  const getDropZoneStyle = () => {
+
+
+  // Memoized drop zone styling to avoid recalculation
+  const dropZoneStyle = useMemo(() => {
     if (isOver && canDrop) {
       return {
         backgroundColor: theme.palette.action.hover,
-        borderColor: getHeaderColor(),
+        borderColor: headerColor,
         borderWidth: '3px',
         borderStyle: 'solid',
         transform: 'scale(1.02)',
-        boxShadow: `0 0 20px ${alpha(getHeaderColor(), 0.3)}`,
+        boxShadow: `0 0 20px ${alpha(headerColor, 0.3)}`,
         animation: 'dropZonePulse 1s ease-in-out infinite alternate',
         '@keyframes dropZonePulse': {
           '0%': { 
@@ -97,14 +99,13 @@ export default function Swimlane({
             transform: 'scale(1.02)'
           },
           '100%': { 
-            backgroundColor: alpha(getHeaderColor(), 0.1),
+            backgroundColor: alpha(headerColor, 0.1),
             transform: 'scale(1.03)'
           },
         }
       };
     }
     if (isOver && !canDrop) {
-      // Invalid drop zone - show red border with shake animation
       return {
         borderColor: theme.palette.error.main,
         borderWidth: '3px',
@@ -120,17 +121,17 @@ export default function Swimlane({
     }
     if (canDrop) {
       return {
-        borderColor: getHeaderColor(),
+        borderColor: headerColor,
         borderStyle: 'dashed',
         animation: 'borderPulse 2s ease-in-out infinite',
         '@keyframes borderPulse': {
-          '0%, 100%': { borderColor: getHeaderColor() },
-          '50%': { borderColor: alpha(getHeaderColor(), 0.5) },
+          '0%, 100%': { borderColor: headerColor },
+          '50%': { borderColor: alpha(headerColor, 0.5) },
         }
       };
     }
     return {};
-  };
+  }, [isOver, canDrop, headerColor, theme]);
 
   return (
     <Paper
@@ -147,10 +148,10 @@ export default function Swimlane({
         maxHeight: isMobile ? '400px' : 'none',
         display: 'flex',
         flexDirection: 'column',
-        border: `2px solid ${getStatusColor()}`,
+        border: `2px solid ${statusColor}`,
         borderRadius: 2,
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        ...getDropZoneStyle(),
+        ...dropZoneStyle,
         // Enhanced entrance animation
         animation: 'swimlaneAppear 0.6s ease-out',
         '@keyframes swimlaneAppear': {
@@ -178,7 +179,7 @@ export default function Swimlane({
           justifyContent: 'space-between',
           mb: 2,
           pb: 1,
-          borderBottom: `2px solid ${getStatusColor()}`
+          borderBottom: `2px solid ${statusColor}`
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -186,7 +187,7 @@ export default function Swimlane({
             variant="h6" 
             component="h2" 
             sx={{ 
-              color: getHeaderColor(),
+              color: headerColor,
               fontWeight: 600,
               fontSize: isMobile ? '1rem' : '1.25rem'
             }}
@@ -199,8 +200,8 @@ export default function Swimlane({
           label={tasks.length}
           size="small"
           sx={{
-            backgroundColor: getStatusColor(),
-            color: getHeaderColor(),
+            backgroundColor: statusColor,
+            color: headerColor,
             fontWeight: 600,
             minWidth: '32px'
           }}
@@ -250,7 +251,7 @@ export default function Swimlane({
               left: 0,
               right: 0,
               bottom: 0,
-              background: `linear-gradient(45deg, ${alpha(getHeaderColor(), 0.1)} 25%, transparent 25%, transparent 75%, ${alpha(getHeaderColor(), 0.1)} 75%)`,
+              background: `linear-gradient(45deg, ${alpha(headerColor, 0.1)} 25%, transparent 25%, transparent 75%, ${alpha(headerColor, 0.1)} 75%)`,
               backgroundSize: '20px 20px',
               animation: 'moveStripes 1s linear infinite',
               borderRadius: 1,
@@ -338,9 +339,9 @@ export default function Swimlane({
               position: 'relative',
               overflow: 'hidden',
               '&:hover': {
-                backgroundColor: getStatusColor(),
-                borderColor: getHeaderColor(),
-                color: getHeaderColor(),
+                backgroundColor: statusColor,
+                borderColor: headerColor,
+                color: headerColor,
                 transform: 'translateY(-2px)',
                 boxShadow: theme.shadows[4],
                 '&::before': {
@@ -359,7 +360,7 @@ export default function Swimlane({
                 left: '-100%',
                 width: '100%',
                 height: '100%',
-                background: `linear-gradient(90deg, transparent, ${alpha(getHeaderColor(), 0.2)}, transparent)`,
+                background: `linear-gradient(90deg, transparent, ${alpha(headerColor, 0.2)}, transparent)`,
                 transition: 'transform 0.6s ease',
                 transform: 'translateX(-100%)',
               }
@@ -382,4 +383,6 @@ export default function Swimlane({
       )}
     </Paper>
   );
-}
+});
+
+export default Swimlane;

@@ -1,3 +1,4 @@
+import { memo, useRef, useCallback } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -17,9 +18,19 @@ import {
 } from '@mui/icons-material';
 import { useDrag } from 'react-dnd';
 import { ItemTypes } from '../constants/dragDropTypes';
+import { animationPresets, transitionPresets } from '../utils/animations';
 
-export default function TaskCard({ task, onEdit, onDelete, isMobile = false }) {
+const TaskCard = memo(function TaskCard({ 
+  task, 
+  onEdit, 
+  onDelete, 
+  isMobile = false, 
+  isSelected = false,
+  onSelect,
+  tabIndex = 0
+}) {
   const theme = useTheme();
+  const cardRef = useRef(null);
 
   // Set up drag functionality
   const [{ isDragging }, drag] = useDrag({
@@ -45,15 +56,31 @@ export default function TaskCard({ task, onEdit, onDelete, isMobile = false }) {
     }),
   });
 
-  const handleEdit = (e) => {
+  const handleEdit = useCallback((e) => {
     e.stopPropagation();
     onEdit(task);
-  };
+  }, [onEdit, task]);
 
-  const handleDelete = (e) => {
+  const handleDelete = useCallback((e) => {
     e.stopPropagation();
     onDelete(task._id || task.id);
-  };
+  }, [onDelete, task]);
+
+  const handleCardClick = useCallback((e) => {
+    if (onSelect) {
+      onSelect(task);
+    }
+  }, [onSelect, task]);
+
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick(e);
+    } else if (e.key === 'Delete' && isSelected) {
+      e.preventDefault();
+      handleDelete(e);
+    }
+  }, [handleCardClick, handleDelete, isSelected]);
 
   // Get priority color
   const getPriorityColor = (priority) => {
@@ -104,11 +131,21 @@ export default function TaskCard({ task, onEdit, onDelete, isMobile = false }) {
 
   return (
     <Card
-      ref={drag}
+      ref={(node) => {
+        drag(node);
+        cardRef.current = node;
+      }}
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={tabIndex}
+      role="button"
+      aria-label={`Task: ${task.title}. Status: ${task.status}. ${task.description ? `Description: ${task.description}` : ''}`}
+      aria-selected={isSelected}
+      data-testid="task-card"
       sx={{
-        cursor: isDragging ? 'grabbing' : (isMobile ? 'pointer' : 'grab'),
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        border: `2px solid transparent`,
+        cursor: isDragging ? 'grabbing' : 'pointer',
+        transition: transitionPresets.smooth,
+        border: `2px solid ${isSelected ? theme.palette.primary.main : 'transparent'}`,
         borderLeftColor: getStatusColor(task.status),
         borderLeftWidth: '4px',
         opacity: isDragging ? 0.6 : 1,
@@ -116,8 +153,16 @@ export default function TaskCard({ task, onEdit, onDelete, isMobile = false }) {
         minWidth: isMobile ? '200px' : 'auto',
         maxWidth: isMobile ? '280px' : 'none',
         flexShrink: isMobile ? 0 : 1,
-        // Touch-friendly sizing
         minHeight: isMobile ? '120px' : 'auto',
+        // Enhanced focus styles
+        '&:focus': {
+          outline: 'none',
+          boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.3)}`,
+          borderColor: theme.palette.primary.main,
+        },
+        '&:focus-visible': {
+          animation: animationPresets.focusAnimation,
+        },
         // Enhanced animations with keyframes
         '@keyframes dragPulse': {
           '0%': { 
@@ -325,4 +370,6 @@ export default function TaskCard({ task, onEdit, onDelete, isMobile = false }) {
       </CardContent>
     </Card>
   );
-}
+});
+
+export default TaskCard;

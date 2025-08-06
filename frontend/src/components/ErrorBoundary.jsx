@@ -1,9 +1,10 @@
-import React from 'react';
+import { Component } from 'react';
 import { 
   Box, 
   Typography, 
   Button, 
   Alert, 
+  AlertTitle,
   Paper,
   Container
 } from '@mui/material';
@@ -13,13 +14,14 @@ import {
   Home as HomeIcon
 } from '@mui/icons-material';
 
-class ErrorBoundary extends React.Component {
+class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
     this.state = { 
       hasError: false, 
       error: null, 
-      errorInfo: null 
+      errorInfo: null,
+      retryCount: 0
     };
   }
 
@@ -29,33 +31,51 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log error details for debugging
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    // Log error details
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
     
     this.setState({
       error: error,
       errorInfo: errorInfo
     });
 
-    // You could also log the error to an error reporting service here
-    // logErrorToService(error, errorInfo);
+    // Report error to monitoring service if available
+    if (window.reportError) {
+      window.reportError(error, errorInfo);
+    }
   }
 
-  handleReload = () => {
-    // Clear error state and reload the page
-    this.setState({ hasError: false, error: null, errorInfo: null });
-    window.location.reload();
+  handleRetry = () => {
+    this.setState(prevState => ({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      retryCount: prevState.retryCount + 1
+    }));
   };
 
   handleGoHome = () => {
-    // Clear error state and navigate to home
-    this.setState({ hasError: false, error: null, errorInfo: null });
     window.location.href = '/';
   };
 
   render() {
     if (this.state.hasError) {
-      // Render custom error UI
+      const { error, errorInfo, retryCount } = this.state;
+      const { fallback: CustomFallback } = this.props;
+
+      // If a custom fallback is provided, use it
+      if (CustomFallback) {
+        return (
+          <CustomFallback 
+            error={error}
+            errorInfo={errorInfo}
+            onRetry={this.handleRetry}
+            retryCount={retryCount}
+          />
+        );
+      }
+
+      // Default error UI
       return (
         <Container maxWidth="md" sx={{ mt: 4 }}>
           <Paper 
@@ -63,7 +83,6 @@ class ErrorBoundary extends React.Component {
             sx={{ 
               p: 4, 
               textAlign: 'center',
-              borderRadius: 2,
               backgroundColor: '#fafafa'
             }}
           >
@@ -80,57 +99,64 @@ class ErrorBoundary extends React.Component {
             </Typography>
             
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              We're sorry, but something unexpected happened. This error has been logged 
-              and we'll look into it.
+              We're sorry, but something unexpected happened. 
+              {retryCount > 0 && ` (Retry attempt: ${retryCount})`}
             </Typography>
 
             <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Error Details:
+              <AlertTitle>Error Details</AlertTitle>
+              <Typography variant="body2" component="div">
+                <strong>Error:</strong> {error?.message || 'Unknown error'}
               </Typography>
-              <Typography variant="body2" component="pre" sx={{ 
-                fontSize: '0.875rem',
-                fontFamily: 'monospace',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word'
-              }}>
-                {this.state.error && this.state.error.toString()}
-              </Typography>
+              {process.env.NODE_ENV === 'development' && errorInfo && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2" component="div">
+                    <strong>Stack Trace:</strong>
+                  </Typography>
+                  <Box 
+                    component="pre" 
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      backgroundColor: '#f5f5f5',
+                      p: 1,
+                      borderRadius: 1,
+                      overflow: 'auto',
+                      maxHeight: '200px'
+                    }}
+                  >
+                    {errorInfo.componentStack}
+                  </Box>
+                </Box>
+              )}
             </Alert>
 
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
-                startIcon={<RefreshIcon />}
-                onClick={this.handleReload}
                 color="primary"
+                startIcon={<RefreshIcon />}
+                onClick={this.handleRetry}
+                size="large"
               >
-                Reload Page
+                Try Again
               </Button>
               
               <Button
                 variant="outlined"
                 startIcon={<HomeIcon />}
                 onClick={this.handleGoHome}
-                color="inherit"
+                size="large"
               >
                 Go Home
               </Button>
             </Box>
 
-            {/* Development mode: Show detailed error info */}
-            {process.env.NODE_ENV === 'development' && this.state.errorInfo && (
-              <Alert severity="info" sx={{ mt: 3, textAlign: 'left' }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Component Stack (Development Only):
-                </Typography>
-                <Typography variant="body2" component="pre" sx={{ 
-                  fontSize: '0.75rem',
-                  fontFamily: 'monospace',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word'
-                }}>
-                  {this.state.errorInfo.componentStack}
+            {retryCount > 2 && (
+              <Alert severity="info" sx={{ mt: 3 }}>
+                <AlertTitle>Still having trouble?</AlertTitle>
+                <Typography variant="body2">
+                  If this problem persists, try refreshing the page or clearing your browser cache. 
+                  You can also contact support for assistance.
                 </Typography>
               </Alert>
             )}
@@ -139,7 +165,6 @@ class ErrorBoundary extends React.Component {
       );
     }
 
-    // If no error, render children normally
     return this.props.children;
   }
 }

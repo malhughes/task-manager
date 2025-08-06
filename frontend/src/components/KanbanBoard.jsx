@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { 
   Box, 
   Typography, 
@@ -11,16 +11,23 @@ import {
 } from '@mui/material';
 import { 
   Refresh as RefreshIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  Help as HelpIcon
 } from '@mui/icons-material';
 import { taskService } from '../services/taskService';
 import { useToast } from '../hooks/useToast';
+import { usePerformanceMonitor, useApiPerformanceMonitor } from '../hooks/usePerformanceMonitor';
+import { useTaskKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useFocusManagement, useFocusAnnouncement } from '../hooks/useFocusManagement';
 import Swimlane from './Swimlane';
 import TaskModal from './TaskModal';
 import DeleteConfirmDialog from './DeleteConfirmDialog';
 import ToastContainer from './ToastContainer';
+import ErrorBoundary from './ErrorBoundary';
+import OptimizedLoading from './OptimizedLoading';
+import KeyboardShortcutsDialog from './KeyboardShortcutsDialog';
 
-export default function KanbanBoard() {
+const KanbanBoard = memo(function KanbanBoard() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [tasks, setTasks] = useState([]);
@@ -30,6 +37,16 @@ export default function KanbanBoard() {
   const [retryCount, setRetryCount] = useState(0);
   const [taskModal, setTaskModal] = useState({ open: false, task: null });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, task: null });
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  
+  // Performance monitoring
+  const performanceMetrics = usePerformanceMonitor('KanbanBoard');
+  const { startApiCall, endApiCall } = useApiPerformanceMonitor();
+  
+  // Focus management and accessibility
+  const { saveFocus, restoreFocus } = useFocusManagement();
+  const { announce } = useFocusAnnouncement();
   
   // Enhanced toast system
   const { 
@@ -76,7 +93,9 @@ export default function KanbanBoard() {
       }
       setError(null);
       
+      startApiCall('getTasks');
       const fetchedTasks = await taskService.getTasks();
+      endApiCall('getTasks', true);
       setTasks(fetchedTasks);
       setRetryCount(0);
       
@@ -86,6 +105,7 @@ export default function KanbanBoard() {
         });
       }
     } catch (err) {
+      endApiCall('getTasks', false);
       const errorMessage = formatErrorMessage(err, 'load tasks');
       setError(errorMessage);
       console.error('Error fetching tasks:', err);
@@ -115,8 +135,15 @@ export default function KanbanBoard() {
     fetchTasks();
   }, []);
 
+  // Memoized task filtering to avoid recalculation
+  const { todoTasks, inProgressTasks, completedTasks } = useMemo(() => ({
+    todoTasks: tasks.filter(task => task.status === 'todo'),
+    inProgressTasks: tasks.filter(task => task.status === 'in-progress'),
+    completedTasks: tasks.filter(task => task.status === 'completed')
+  }), [tasks]);
+
   // Handle task movement between swimlanes
-  const handleTaskMove = async (taskId, newStatus) => {
+  const handleTaskMove = useCallback(async (taskId, newStatus) => {
     const originalTasks = [...tasks];
     const taskToMove = tasks.find(task => task._id === taskId);
     
@@ -171,7 +198,17 @@ export default function KanbanBoard() {
             <Button 
               size="small" 
               color="inherit" 
-              onClick={() => handleTaskMove(taskId, newStatus)}
+              onClick={() => {
+                // Retry the move operation
+                setTasks(prevTasks => 
+                  prevTasks.map(task => 
+                    task._id === taskId ? { ...task, status: newStatus } : task
+                  )
+                );
+                taskService.updateTaskStatus(taskId, newStatus).catch(() => {
+                  setTasks(originalTasks);
+                });
+              }}
             >
               Retry
             </Button>
@@ -182,38 +219,34 @@ export default function KanbanBoard() {
     } finally {
       setOperationLoading(false);
     }
-  };
+  }, [tasks, showSuccess, showError]);
 
-  // Handle opening task creation modal
-  const handleOpenCreateModal = () => {
+  // Memoized modal handlers to prevent unnecessary re-renders
+  const handleOpenCreateModal = useCallback(() => {
     setTaskModal({ open: true, task: null });
-  };
+  }, []);
 
-  // Handle opening task edit modal
-  const handleOpenEditModal = (task) => {
+  const handleOpenEditModal = useCallback((task) => {
     setTaskModal({ open: true, task });
-  };
+  }, []);
 
-  // Handle closing task modal
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setTaskModal({ open: false, task: null });
-  };
+  }, []);
 
-  // Handle opening delete confirmation dialog
-  const handleOpenDeleteDialog = (taskId) => {
+  const handleOpenDeleteDialog = useCallback((taskId) => {
     const taskToDelete = tasks.find(task => task._id === taskId);
     if (taskToDelete) {
       setDeleteDialog({ open: true, task: taskToDelete });
     }
-  };
+  }, [tasks]);
 
-  // Handle closing delete confirmation dialog
-  const handleCloseDeleteDialog = () => {
+  const handleCloseDeleteDialog = useCallback(() => {
     setDeleteDialog({ open: false, task: null });
-  };
+  }, []);
 
   // Handle task creation
-  const handleTaskCreate = async (taskData) => {
+  const handleTaskCreate = useCallback(async (taskData) => {
     try {
       setOperationLoading(true);
       const newTask = await taskService.createTask(taskData);
@@ -241,10 +274,10 @@ export default function KanbanBoard() {
     } finally {
       setOperationLoading(false);
     }
-  };
+  }, [showSuccess, showError, handleCloseModal]);
 
   // Handle task update
-  const handleTaskUpdate = async (taskData) => {
+  const handleTaskUpdate = useCallback(async (taskData) => {
     const taskId = taskModal.task._id;
     const originalTitle = taskModal.task.title;
     
@@ -279,10 +312,10 @@ export default function KanbanBoard() {
     } finally {
       setOperationLoading(false);
     }
-  };
+  }, [taskModal.task, showSuccess, showError, handleCloseModal]);
 
   // Handle task deletion
-  const handleTaskDelete = async (taskId) => {
+  const handleTaskDelete = useCallback(async (taskId) => {
     const taskToDelete = deleteDialog.task;
     
     try {
@@ -312,107 +345,33 @@ export default function KanbanBoard() {
     } finally {
       setOperationLoading(false);
     }
-  };
+  }, [deleteDialog.task, showSuccess, showError, handleCloseDeleteDialog]);
 
   // Enhanced retry function with better user feedback
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     setRetryCount(prev => prev + 1);
     showInfo('Retrying...', {
       title: 'Loading Tasks',
       duration: 2000
     });
     fetchTasks(true);
-  };
+  }, [showInfo]);
 
-  // Enhanced loading skeleton for initial load
-  const LoadingSkeleton = () => (
-    <Box sx={{ padding: 2 }}>
-      {/* Header skeleton with animation */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        mb: 3,
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 1 : 0
-      }}>
-        <Skeleton 
-          variant="text" 
-          width={isMobile ? 150 : 200} 
-          height={40} 
-          sx={{ 
-            animation: 'pulse 1.5s ease-in-out infinite',
-            '@keyframes pulse': {
-              '0%': { opacity: 1 },
-              '50%': { opacity: 0.4 },
-              '100%': { opacity: 1 },
-            }
-          }} 
-        />
-        <Skeleton 
-          variant="rectangular" 
-          width={isMobile ? 120 : 100} 
-          height={36} 
-          sx={{ borderRadius: 1 }} 
-        />
-      </Box>
-      
-      {/* Board skeleton with staggered animation */}
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 1.5 : 2 
-      }}>
-        {[1, 2, 3].map((col) => (
-          <Box key={col} sx={{ flex: 1 }}>
-            {/* Column header skeleton */}
-            <Skeleton 
-              variant="rectangular" 
-              height={60} 
-              sx={{ 
-                mb: 2, 
-                borderRadius: 1,
-                animation: `pulse 1.5s ease-in-out infinite ${col * 0.2}s`,
-                '@keyframes pulse': {
-                  '0%': { opacity: 1 },
-                  '50%': { opacity: 0.4 },
-                  '100%': { opacity: 1 },
-                }
-              }} 
-            />
-            
-            {/* Task card skeletons with staggered animation */}
-            {[1, 2, 3].map((card) => (
-              <Skeleton 
-                key={card} 
-                variant="rectangular" 
-                height={isMobile ? 100 : 120} 
-                sx={{ 
-                  mb: 1.5, 
-                  borderRadius: 1,
-                  animation: `slideIn 0.6s ease-out ${(col - 1) * 0.1 + card * 0.1}s both`,
-                  '@keyframes slideIn': {
-                    '0%': { 
-                      opacity: 0, 
-                      transform: 'translateY(20px)' 
-                    },
-                    '100%': { 
-                      opacity: 1, 
-                      transform: 'translateY(0)' 
-                    },
-                  }
-                }} 
-              />
-            ))}
-          </Box>
-        ))}
-      </Box>
-    </Box>
-  );
+  // Keyboard shortcuts for power users
+  useTaskKeyboardShortcuts({
+    onCreateTask: handleOpenCreateModal,
+    onEditTask: handleOpenEditModal,
+    onDeleteTask: (taskId) => handleOpenDeleteDialog(taskId),
+    onMoveTask: handleTaskMove,
+    onRefresh: () => fetchTasks(true),
+    onShowHelp: () => setShowKeyboardHelp(true),
+    selectedTask,
+    enabled: !taskModal.open && !deleteDialog.open && !showKeyboardHelp
+  });
 
-  // Loading state
+  // Loading state with optimized skeleton
   if (loading) {
-    return <LoadingSkeleton />;
+    return <OptimizedLoading type="kanban" isMobile={isMobile} />;
   }
 
   // Enhanced critical error state with better user guidance
@@ -502,10 +461,7 @@ export default function KanbanBoard() {
     );
   }
 
-  // Filter tasks by status for each swimlane
-  const todoTasks = tasks.filter(task => task.status === 'todo');
-  const inProgressTasks = tasks.filter(task => task.status === 'in-progress');
-  const completedTasks = tasks.filter(task => task.status === 'completed');
+
 
   return (
     <Box sx={{ 
@@ -550,17 +506,30 @@ export default function KanbanBoard() {
             </Box>
           )}
           
-          {/* Refresh button */}
-          <Button
-            variant="outlined"
-            size={isMobile ? "medium" : "small"}
-            startIcon={<RefreshIcon />}
-            onClick={() => fetchTasks(true)}
-            disabled={loading || operationLoading}
-            sx={{ minWidth: isMobile ? '120px' : 'auto' }}
-          >
-            Refresh
-          </Button>
+          {/* Action buttons */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              size={isMobile ? "medium" : "small"}
+              startIcon={<HelpIcon />}
+              onClick={() => setShowKeyboardHelp(true)}
+              sx={{ minWidth: isMobile ? '100px' : 'auto' }}
+              title="Keyboard shortcuts (Ctrl+/)"
+            >
+              {isMobile ? 'Help' : 'Shortcuts'}
+            </Button>
+            
+            <Button
+              variant="outlined"
+              size={isMobile ? "medium" : "small"}
+              startIcon={<RefreshIcon />}
+              onClick={() => fetchTasks(true)}
+              disabled={loading || operationLoading}
+              sx={{ minWidth: isMobile ? '120px' : 'auto' }}
+            >
+              Refresh
+            </Button>
+          </Box>
         </Box>
       </Box>
       
@@ -747,6 +716,21 @@ export default function KanbanBoard() {
         task={deleteDialog.task}
         loading={operationLoading}
       />
+
+      {/* Keyboard Shortcuts Help Dialog */}
+      <KeyboardShortcutsDialog
+        open={showKeyboardHelp}
+        onClose={() => setShowKeyboardHelp(false)}
+      />
     </Box>
   );
-}
+});
+
+// Wrap KanbanBoard with ErrorBoundary for better error handling
+const KanbanBoardWithErrorBoundary = () => (
+  <ErrorBoundary>
+    <KanbanBoard />
+  </ErrorBoundary>
+);
+
+export default KanbanBoardWithErrorBoundary;
