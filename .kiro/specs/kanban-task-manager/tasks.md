@@ -219,20 +219,36 @@
   - Ensure task returns to original position on failed moves
   - _Requirements: 4.6, 5.5_
 
-- [ ] 7. Add responsive design and UI polish
-- [ ] 7.1 Implement responsive layout for different screen sizes
+- [x] 7. Add responsive design and UI polish
+
+
+
+
+
+
+
+
+
+
+- [x] 7.1 Implement responsive layout for different screen sizes
+
+
   - Add responsive breakpoints for mobile and tablet views
   - Adjust swimlane layout for smaller screens
   - Ensure drag-and-drop works on touch devices
   - _Requirements: 6.1_
 
-- [ ] 7.2 Add loading indicators and smooth transitions
+- [x] 7.2 Add loading indicators and smooth transitions
+
+
   - Implement loading spinners for API operations
   - Add smooth animations for task movements
   - Create skeleton loading states for initial page load
   - _Requirements: 6.2, 6.3_
 
-- [ ] 7.3 Enhance error messaging and user feedback
+- [x] 7.3 Enhance error messaging and user feedback
+
+
   - Create toast notifications for success and error messages
   - Add proper error boundaries for component error handling
   - Implement user-friendly error messages

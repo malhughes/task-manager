@@ -200,8 +200,10 @@ export default function TaskModal({
             disabled={loading}
             required
             sx={{ mb: 3 }}
-            inputProps={{
-              maxLength: 200
+            slotProps={{
+              htmlInput: {
+                maxLength: 200
+              }
             }}
           />
 
@@ -223,8 +225,10 @@ export default function TaskModal({
             multiline
             rows={4}
             sx={{ mb: 2 }}
-            inputProps={{
-              maxLength: 1000
+            slotProps={{
+              htmlInput: {
+                maxLength: 1000
+              }
             }}
           />
 

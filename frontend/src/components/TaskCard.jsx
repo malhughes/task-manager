@@ -18,7 +18,7 @@ import {
 import { useDrag } from 'react-dnd';
 import { ItemTypes } from '../constants/dragDropTypes';
 
-export default function TaskCard({ task, onEdit, onDelete }) {
+export default function TaskCard({ task, onEdit, onDelete, isMobile = false }) {
   const theme = useTheme();
 
   // Set up drag functionality
@@ -29,7 +29,7 @@ export default function TaskCard({ task, onEdit, onDelete }) {
       task: task,
       originalStatus: task.status 
     },
-    end: (item, monitor) => {
+    end: (_, monitor) => {
       // Handle drag end - this fires regardless of whether drop was successful
       const dropResult = monitor.getDropResult();
       if (!dropResult) {
@@ -106,40 +106,89 @@ export default function TaskCard({ task, onEdit, onDelete }) {
     <Card
       ref={drag}
       sx={{
-        cursor: isDragging ? 'grabbing' : 'grab',
-        transition: 'all 0.2s ease-in-out',
+        cursor: isDragging ? 'grabbing' : (isMobile ? 'pointer' : 'grab'),
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         border: `2px solid transparent`,
         borderLeftColor: getStatusColor(task.status),
         borderLeftWidth: '4px',
-        opacity: isDragging ? 0.5 : 1,
-        transform: isDragging ? 'rotate(5deg)' : 'none',
+        opacity: isDragging ? 0.6 : 1,
+        transform: isDragging ? 'rotate(5deg) scale(1.05)' : 'none',
+        minWidth: isMobile ? '200px' : 'auto',
+        maxWidth: isMobile ? '280px' : 'none',
+        flexShrink: isMobile ? 0 : 1,
+        // Touch-friendly sizing
+        minHeight: isMobile ? '120px' : 'auto',
+        // Enhanced animations with keyframes
+        '@keyframes dragPulse': {
+          '0%': { 
+            boxShadow: theme.shadows[8],
+            transform: 'rotate(5deg) scale(1.05)'
+          },
+          '100%': { 
+            boxShadow: theme.shadows[12],
+            transform: 'rotate(5deg) scale(1.08)'
+          },
+        },
+        '@keyframes cardAppear': {
+          '0%': { 
+            opacity: 0, 
+            transform: 'translateY(20px) scale(0.9)' 
+          },
+          '100%': { 
+            opacity: 1, 
+            transform: 'translateY(0) scale(1)' 
+          },
+        },
+        // Smooth entrance animation
+        animation: isDragging ? 'dragPulse 0.6s ease-in-out infinite alternate' : 'cardAppear 0.4s ease-out',
         '&:hover': {
-          boxShadow: isDragging ? theme.shadows[4] : theme.shadows[8],
-          transform: isDragging ? 'rotate(5deg)' : 'translateY(-2px)',
-          borderColor: alpha(getStatusColor(task.status), 0.3),
+          boxShadow: isDragging ? theme.shadows[12] : theme.shadows[8],
+          transform: isDragging ? 'rotate(5deg) scale(1.08)' : (isMobile ? 'none' : 'translateY(-4px) scale(1.02)'),
+          borderColor: alpha(getStatusColor(task.status), 0.5),
           '& .task-actions': {
             opacity: isDragging ? 0 : 1,
+            transform: 'scale(1.1)',
           }
         },
         '&:active': {
           cursor: 'grabbing',
-          transform: 'translateY(0px)',
+          transform: isMobile ? 'scale(0.98)' : 'translateY(0px) scale(0.98)',
           boxShadow: theme.shadows[4],
+          transition: 'all 0.1s ease-out',
+        },
+        // Touch device optimizations
+        '@media (hover: none)': {
+          '&:hover': {
+            transform: isDragging ? 'rotate(5deg) scale(1.05)' : 'none',
+            boxShadow: isDragging ? theme.shadows[12] : theme.shadows[2],
+          },
+          '& .task-actions': {
+            opacity: 1, // Always show actions on touch devices
+          }
         }
       }}
     >
-      <CardContent sx={{ padding: 2, '&:last-child': { paddingBottom: 2 } }}>
+      <CardContent sx={{ 
+        padding: isMobile ? 1.5 : 2, 
+        '&:last-child': { paddingBottom: isMobile ? 1.5 : 2 } 
+      }}>
         {/* Header with title and actions */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'flex-start', 
+          mb: isMobile ? 0.5 : 1 
+        }}>
           <Typography 
-            variant="subtitle1" 
+            variant={isMobile ? "body1" : "subtitle1"} 
             component="h3" 
             sx={{ 
               fontWeight: 600,
               color: theme.palette.text.primary,
               lineHeight: 1.3,
               flex: 1,
-              mr: 1
+              mr: 1,
+              fontSize: isMobile ? '0.9rem' : 'inherit'
             }}
           >
             {task.title}
@@ -150,39 +199,41 @@ export default function TaskCard({ task, onEdit, onDelete }) {
             className="task-actions"
             sx={{ 
               display: 'flex', 
-              gap: 0.5,
-              opacity: 0,
+              gap: isMobile ? 0.25 : 0.5,
+              opacity: isMobile ? 1 : 0, // Always visible on mobile
               transition: 'opacity 0.2s ease-in-out'
             }}
           >
             <Tooltip title="Edit task">
               <IconButton 
-                size="small" 
+                size={isMobile ? "small" : "small"} 
                 onClick={handleEdit} 
                 aria-label="Edit task"
                 sx={{
                   color: theme.palette.primary.main,
+                  padding: isMobile ? '4px' : '8px',
                   '&:hover': {
                     backgroundColor: alpha(theme.palette.primary.main, 0.1),
                   }
                 }}
               >
-                <EditIcon fontSize="small" />
+                <EditIcon fontSize={isMobile ? "small" : "small"} />
               </IconButton>
             </Tooltip>
             <Tooltip title="Delete task">
               <IconButton 
-                size="small" 
+                size={isMobile ? "small" : "small"} 
                 onClick={handleDelete} 
                 aria-label="Delete task"
                 sx={{
                   color: theme.palette.error.main,
+                  padding: isMobile ? '4px' : '8px',
                   '&:hover': {
                     backgroundColor: alpha(theme.palette.error.main, 0.1),
                   }
                 }}
               >
-                <DeleteIcon fontSize="small" />
+                <DeleteIcon fontSize={isMobile ? "small" : "small"} />
               </IconButton>
             </Tooltip>
           </Box>
@@ -191,20 +242,28 @@ export default function TaskCard({ task, onEdit, onDelete }) {
         {/* Description */}
         {task.description && (
           <Typography 
-            variant="body2" 
+            variant={isMobile ? "caption" : "body2"} 
             color="text.secondary" 
             sx={{ 
-              mb: 2,
+              mb: isMobile ? 1 : 2,
               lineHeight: 1.4,
-              wordBreak: 'break-word'
+              wordBreak: 'break-word',
+              fontSize: isMobile ? '0.75rem' : 'inherit'
             }}
           >
-            {truncateText(task.description)}
+            {truncateText(task.description, isMobile ? 60 : 100)}
           </Typography>
         )}
 
         {/* Metadata row */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: isMobile ? 'flex-start' : 'center',
+          mt: 'auto',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? 0.5 : 0
+        }}>
           {/* Priority and creation date */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {task.priority && (
@@ -217,10 +276,10 @@ export default function TaskCard({ task, onEdit, onDelete }) {
                     backgroundColor: alpha(getPriorityColor(task.priority), 0.1),
                     color: getPriorityColor(task.priority),
                     border: `1px solid ${alpha(getPriorityColor(task.priority), 0.3)}`,
-                    fontSize: '0.75rem',
-                    height: '24px',
+                    fontSize: isMobile ? '0.65rem' : '0.75rem',
+                    height: isMobile ? '20px' : '24px',
                     '& .MuiChip-icon': {
-                      fontSize: '14px',
+                      fontSize: isMobile ? '12px' : '14px',
                       color: getPriorityColor(task.priority),
                     }
                   }}
@@ -233,12 +292,15 @@ export default function TaskCard({ task, onEdit, onDelete }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <ScheduleIcon 
               fontSize="small" 
-              sx={{ color: theme.palette.text.secondary, fontSize: '14px' }} 
+              sx={{ 
+                color: theme.palette.text.secondary, 
+                fontSize: isMobile ? '12px' : '14px' 
+              }} 
             />
             <Typography 
               variant="caption" 
               color="text.secondary"
-              sx={{ fontSize: '0.75rem' }}
+              sx={{ fontSize: isMobile ? '0.65rem' : '0.75rem' }}
             >
               {formatDate(task.createdAt)}
             </Typography>

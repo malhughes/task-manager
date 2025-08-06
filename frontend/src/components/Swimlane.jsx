@@ -1,4 +1,4 @@
-import { Box, Typography, Paper, Chip, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Typography, Paper, Chip, useTheme, useMediaQuery, alpha } from '@mui/material';
 import { Add as AddIcon, Assignment as AssignmentIcon } from '@mui/icons-material';
 import { useDrop } from 'react-dnd';
 import { ItemTypes } from '../constants/dragDropTypes';
@@ -19,7 +19,7 @@ export default function Swimlane({
   // Set up drop functionality
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: ItemTypes.TASK_CARD,
-    drop: (item, monitor) => {
+    drop: (item) => {
       // Only move if the task is being dropped in a different swimlane
       if (item.task.status !== status) {
         onTaskMove(item.id, status);
@@ -80,7 +80,7 @@ export default function Swimlane({
     }
   };
 
-  // Get drop zone styling
+  // Enhanced drop zone styling with smooth animations
   const getDropZoneStyle = () => {
     if (isOver && canDrop) {
       return {
@@ -89,21 +89,44 @@ export default function Swimlane({
         borderWidth: '3px',
         borderStyle: 'solid',
         transform: 'scale(1.02)',
+        boxShadow: `0 0 20px ${alpha(getHeaderColor(), 0.3)}`,
+        animation: 'dropZonePulse 1s ease-in-out infinite alternate',
+        '@keyframes dropZonePulse': {
+          '0%': { 
+            backgroundColor: theme.palette.action.hover,
+            transform: 'scale(1.02)'
+          },
+          '100%': { 
+            backgroundColor: alpha(getHeaderColor(), 0.1),
+            transform: 'scale(1.03)'
+          },
+        }
       };
     }
     if (isOver && !canDrop) {
-      // Invalid drop zone - show red border
+      // Invalid drop zone - show red border with shake animation
       return {
         borderColor: theme.palette.error.main,
         borderWidth: '3px',
         borderStyle: 'solid',
-        backgroundColor: theme.palette.error.light + '20', // 20% opacity
+        backgroundColor: alpha(theme.palette.error.light, 0.2),
+        animation: 'shake 0.5s ease-in-out',
+        '@keyframes shake': {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '25%': { transform: 'translateX(-5px)' },
+          '75%': { transform: 'translateX(5px)' },
+        }
       };
     }
     if (canDrop) {
       return {
         borderColor: getHeaderColor(),
         borderStyle: 'dashed',
+        animation: 'borderPulse 2s ease-in-out infinite',
+        '@keyframes borderPulse': {
+          '0%, 100%': { borderColor: getHeaderColor() },
+          '50%': { borderColor: alpha(getHeaderColor(), 0.5) },
+        }
       };
     }
     return {};
@@ -112,23 +135,38 @@ export default function Swimlane({
   return (
     <Paper
       ref={drop}
-      elevation={isOver ? 8 : 2}
+      elevation={isOver ? 12 : 2}
       sx={{
-        flex: 1,
-        minWidth: isMobile ? '280px' : '320px',
+        flex: isMobile ? 'none' : 1,
+        width: isMobile ? '100%' : 'auto',
+        minWidth: isMobile ? '100%' : '320px',
         maxWidth: isMobile ? '100%' : '400px',
-        padding: 2,
+        padding: isMobile ? 1.5 : 2,
         backgroundColor: isOver && canDrop ? theme.palette.action.hover : '#fafafa',
-        minHeight: '500px',
+        minHeight: isMobile ? '300px' : '500px',
+        maxHeight: isMobile ? '400px' : 'none',
         display: 'flex',
         flexDirection: 'column',
         border: `2px solid ${getStatusColor()}`,
         borderRadius: 2,
-        transition: 'all 0.2s ease-in-out',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         ...getDropZoneStyle(),
+        // Enhanced entrance animation
+        animation: 'swimlaneAppear 0.6s ease-out',
+        '@keyframes swimlaneAppear': {
+          '0%': { 
+            opacity: 0, 
+            transform: 'translateY(30px) scale(0.95)' 
+          },
+          '100%': { 
+            opacity: 1, 
+            transform: 'translateY(0) scale(1)' 
+          },
+        },
         '&:hover': {
-          elevation: isOver ? 8 : 4,
-          transform: isOver ? 'scale(1.02)' : 'translateY(-2px)',
+          elevation: isOver ? 12 : 6,
+          transform: isOver ? 'scale(1.02)' : (isMobile ? 'none' : 'translateY(-4px) scale(1.01)'),
+          boxShadow: isOver ? theme.shadows[12] : theme.shadows[6],
         }
       }}
     >
@@ -169,34 +207,60 @@ export default function Swimlane({
         />
       </Box>
       
-      {/* Task List Container */}
+      {/* Enhanced Task List Container */}
       <Box 
         sx={{ 
           flex: 1, 
           display: 'flex', 
-          flexDirection: 'column', 
-          gap: 1.5,
-          overflowY: 'auto',
-          maxHeight: 'calc(100vh - 200px)',
-          minHeight: '200px',
+          flexDirection: isMobile ? 'row' : 'column',
+          gap: isMobile ? 1 : 1.5,
+          overflowY: isMobile ? 'hidden' : 'auto',
+          overflowX: isMobile ? 'auto' : 'hidden',
+          maxHeight: isMobile ? '280px' : 'calc(100vh - 200px)',
+          minHeight: isMobile ? '150px' : '200px',
           padding: isOver && canDrop ? 1 : 0,
           borderRadius: isOver && canDrop ? 1 : 0,
           backgroundColor: isOver && canDrop ? theme.palette.action.selected : 'transparent',
-          transition: 'all 0.2s ease-in-out',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          // Enhanced scrollbar styling
           '&::-webkit-scrollbar': {
-            width: '6px',
+            width: isMobile ? '6px' : '8px',
+            height: isMobile ? '6px' : '8px',
           },
           '&::-webkit-scrollbar-track': {
             backgroundColor: theme.palette.grey[100],
-            borderRadius: '3px',
+            borderRadius: '4px',
           },
           '&::-webkit-scrollbar-thumb': {
             backgroundColor: theme.palette.grey[400],
-            borderRadius: '3px',
+            borderRadius: '4px',
+            transition: 'background-color 0.2s ease',
             '&:hover': {
-              backgroundColor: theme.palette.grey[500],
+              backgroundColor: theme.palette.grey[600],
             },
           },
+          // Smooth scroll behavior
+          scrollBehavior: 'smooth',
+          // Enhanced drop zone feedback
+          ...(isOver && canDrop && {
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(45deg, ${alpha(getHeaderColor(), 0.1)} 25%, transparent 25%, transparent 75%, ${alpha(getHeaderColor(), 0.1)} 75%)`,
+              backgroundSize: '20px 20px',
+              animation: 'moveStripes 1s linear infinite',
+              borderRadius: 1,
+              pointerEvents: 'none',
+              '@keyframes moveStripes': {
+                '0%': { backgroundPosition: '0 0' },
+                '100%': { backgroundPosition: '20px 20px' },
+              }
+            }
+          })
         }}
       >
         {/* Empty State */}
@@ -207,10 +271,11 @@ export default function Swimlane({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              minHeight: '200px',
+              minHeight: isMobile ? '120px' : '200px',
+              minWidth: isMobile ? '200px' : 'auto',
               color: 'text.secondary',
               textAlign: 'center',
-              padding: 2,
+              padding: isMobile ? 1.5 : 2,
               border: `2px dashed ${theme.palette.grey[300]}`,
               borderRadius: 2,
               backgroundColor: theme.palette.grey[50],
@@ -218,17 +283,24 @@ export default function Swimlane({
           >
             <AssignmentIcon 
               sx={{ 
-                fontSize: 48, 
+                fontSize: isMobile ? 32 : 48, 
                 color: theme.palette.grey[400],
                 mb: 1 
               }} 
             />
-            <Typography variant="body2" sx={{ mb: 1 }}>
+            <Typography 
+              variant={isMobile ? "caption" : "body2"} 
+              sx={{ mb: 1, fontSize: isMobile ? '0.75rem' : 'inherit' }}
+            >
               No tasks in {title.toLowerCase()}
             </Typography>
             {status === 'todo' && onTaskCreate && (
-              <Typography variant="caption" color="text.secondary">
-                Create your first task to get started
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+                sx={{ fontSize: isMobile ? '0.7rem' : 'inherit' }}
+              >
+                {isMobile ? 'Tap + to add' : 'Create your first task to get started'}
               </Typography>
             )}
           </Box>
@@ -240,12 +312,13 @@ export default function Swimlane({
               task={task}
               onEdit={handleTaskEdit}
               onDelete={handleTaskDelete}
+              isMobile={isMobile}
             />
           ))
         )}
       </Box>
 
-      {/* Add Task Button (only for To-Do column) */}
+      {/* Enhanced Add Task Button (only for To-Do column) */}
       {status === 'todo' && onTaskCreate && (
         <Box sx={{ mt: 2, pt: 1, borderTop: `1px solid ${theme.palette.grey[300]}` }}>
           <Box
@@ -261,15 +334,46 @@ export default function Swimlane({
               cursor: 'pointer',
               color: theme.palette.grey[600],
               backgroundColor: 'transparent',
-              transition: 'all 0.2s ease-in-out',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative',
+              overflow: 'hidden',
               '&:hover': {
                 backgroundColor: getStatusColor(),
                 borderColor: getHeaderColor(),
                 color: getHeaderColor(),
+                transform: 'translateY(-2px)',
+                boxShadow: theme.shadows[4],
+                '&::before': {
+                  transform: 'translateX(0)',
+                }
+              },
+              '&:active': {
+                transform: 'translateY(0)',
+                transition: 'all 0.1s ease-out',
+              },
+              // Subtle shine effect on hover
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: '-100%',
+                width: '100%',
+                height: '100%',
+                background: `linear-gradient(90deg, transparent, ${alpha(getHeaderColor(), 0.2)}, transparent)`,
+                transition: 'transform 0.6s ease',
+                transform: 'translateX(-100%)',
               }
             }}
           >
-            <AddIcon fontSize="small" />
+            <AddIcon 
+              fontSize="small" 
+              sx={{
+                transition: 'transform 0.2s ease',
+                '&:hover': {
+                  transform: 'rotate(90deg)',
+                }
+              }}
+            />
             <Typography variant="body2" fontWeight={500}>
               Add Task
             </Typography>
