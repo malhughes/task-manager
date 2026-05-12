@@ -166,7 +166,7 @@ const Swimlane = memo(function Swimlane({
         },
         '&:hover': {
           elevation: isOver ? 12 : 6,
-          transform: isOver ? 'scale(1.02)' : (isMobile ? 'none' : 'translateY(-4px) scale(1.01)'),
+          transform: isOver ? 'scale(1.02)' : 'none',
           boxShadow: isOver ? theme.shadows[12] : theme.shadows[6],
         }
       }}
@@ -217,7 +217,7 @@ const Swimlane = memo(function Swimlane({
           gap: isMobile ? 1 : 1.5,
           overflowY: isMobile ? 'hidden' : 'auto',
           overflowX: isMobile ? 'auto' : 'hidden',
-          maxHeight: isMobile ? '280px' : 'calc(100vh - 200px)',
+          maxHeight: isMobile ? '280px' : 'calc(100vh - 264px)',
           minHeight: isMobile ? '150px' : '200px',
           padding: isOver && canDrop ? 1 : 0,
           borderRadius: isOver && canDrop ? 1 : 0,

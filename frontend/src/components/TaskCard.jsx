@@ -188,7 +188,7 @@ const TaskCard = memo(function TaskCard({
         animation: isDragging ? 'dragPulse 0.6s ease-in-out infinite alternate' : 'cardAppear 0.4s ease-out',
         '&:hover': {
           boxShadow: isDragging ? theme.shadows[12] : theme.shadows[8],
-          transform: isDragging ? 'rotate(5deg) scale(1.08)' : (isMobile ? 'none' : 'translateY(-4px) scale(1.02)'),
+          transform: isDragging ? 'rotate(5deg) scale(1.08)' : (isMobile ? 'none' : 'translateY(-4px)'),
           borderColor: alpha(getStatusColor(task.status), 0.5),
           '& .task-actions': {
             opacity: isDragging ? 0 : 1,
