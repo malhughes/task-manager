@@ -42,9 +42,6 @@ const KanbanBoard = memo(function KanbanBoard() {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
 
-  // Performance monitoring
-  const { startApiCall, endApiCall } = useApiPerformanceMonitor();
-
   // Focus management and accessibility
   const { saveFocus, restoreFocus } = useFocusManagement();
   const { announce } = useFocusAnnouncement();
