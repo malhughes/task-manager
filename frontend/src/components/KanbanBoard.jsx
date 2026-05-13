@@ -16,10 +16,6 @@ import {
 } from "@mui/icons-material";
 import { taskService } from "../services/taskService";
 import { useToast } from "../hooks/useToast";
-import {
-  usePerformanceMonitor,
-  useApiPerformanceMonitor,
-} from "../hooks/usePerformanceMonitor";
 import { useTaskKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import {
   useFocusManagement,
@@ -47,7 +43,6 @@ const KanbanBoard = memo(function KanbanBoard() {
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
 
   // Performance monitoring
-  const performanceMetrics = usePerformanceMonitor("KanbanBoard");
   const { startApiCall, endApiCall } = useApiPerformanceMonitor();
 
   // Focus management and accessibility
